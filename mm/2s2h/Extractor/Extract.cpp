@@ -220,8 +220,7 @@ void Extractor::GetRoms(std::vector<std::string>& roms) {
             const char* fullPathCStr = fullPathString.c_str();
 
             // Check if current entry is not folder
-            stat(fullPathCStr, &path);
-            if (S_ISREG(path.st_mode)) {
+            if (stat(fullPathCStr, &path) == 0 && S_ISREG(path.st_mode)) {
 
                 // Get the position of the extension character.
                 char* ext = strrchr(dir->d_name, '.');
@@ -230,8 +229,8 @@ void Extractor::GetRoms(std::vector<std::string>& roms) {
                 }
             }
         }
+        closedir(d);
     }
-    closedir(d);
 #else
     for (const auto& file : std::filesystem::directory_iterator(mSearchPath)) {
         if (file.is_directory())

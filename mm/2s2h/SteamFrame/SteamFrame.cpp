@@ -12,21 +12,25 @@ namespace SteamFrame {
 namespace {
 
 #if defined(__linux__) && defined(__aarch64__)
-// SteamOS reports ID=steamos; the Frame's Arch Linux ARM base (Holo) reports ID=holo.
-bool IsSteamOS() {
-    std::ifstream osRelease("/etc/os-release");
+std::string OsReleaseValue(const std::string& key) {
+    // Inside Steam Linux Runtime (pressure-vessel) /etc/os-release describes the runtime; the host's
+    // copy is mounted at /run/host/os-release.
+    std::ifstream osRelease("/run/host/os-release");
+    if (!osRelease.is_open()) {
+        osRelease.open("/etc/os-release");
+    }
     std::string line;
     while (std::getline(osRelease, line)) {
-        if (line.rfind("ID=", 0) != 0) {
+        if (line.rfind(key + "=", 0) != 0) {
             continue;
         }
-        std::string id = line.substr(3);
-        if (id.size() >= 2 && id.front() == '"' && id.back() == '"') {
-            id = id.substr(1, id.size() - 2);
+        std::string value = line.substr(key.size() + 1);
+        if (value.size() >= 2 && value.front() == '"' && value.back() == '"') {
+            value = value.substr(1, value.size() - 2);
         }
-        return id == "steamos" || id == "holo";
+        return value;
     }
-    return false;
+    return "";
 }
 #endif
 
@@ -35,8 +39,10 @@ bool Detect() {
         return std::strcmp(forced, "0") != 0;
     }
 #if defined(__linux__) && defined(__aarch64__)
-    // The Frame is the only aarch64 device SteamOS ships on.
-    return IsSteamOS();
+    // The Frame reports ID=steamos, VARIANT_ID=vr. It is the only aarch64 device SteamOS ships on;
+    // its Arch Linux ARM base (Holo) reports ID=holo.
+    const std::string id = OsReleaseValue("ID");
+    return id == "steamos" || id == "holo" || OsReleaseValue("VARIANT_ID") == "vr";
 #else
     return false;
 #endif
@@ -65,13 +71,16 @@ void ApplyDefaults() {
     CVarRegisterInteger("gSettings.ImGuiScale", 2);
     CVarRegisterInteger(CVAR_VSYNC_ENABLED, 1);
 
+    // Config::Contains() can't be used here: for a missing nested key it finds the nearest parent.
     auto config = Ship::Context::GetRawInstance()->GetConfig();
-    if (!config->Contains("Window.Fullscreen.Enabled")) {
+    const bool fullscreenSet =
+        config->GetBool("Window.Fullscreen.Enabled", false) == config->GetBool("Window.Fullscreen.Enabled", true);
+    if (!fullscreenSet) {
         config->SetBool("Window.Fullscreen.Enabled", true);
     }
     // Backbuffer size of the flat window; the compositor scales it onto the virtual screen.
     // libultraship otherwise picks the Steam Deck's 1280x800 under gamescope.
-    if (!config->Contains("Window.Fullscreen.Width") && !config->Contains("Window.Fullscreen.Height")) {
+    if (config->GetInt("Window.Fullscreen.Width", -1) == -1 && config->GetInt("Window.Fullscreen.Height", -1) == -1) {
         config->SetInt("Window.Fullscreen.Width", 1920);
         config->SetInt("Window.Fullscreen.Height", 1080);
     }
