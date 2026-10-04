@@ -65,7 +65,7 @@ void ApplyDefaults() {
     CVarRegisterInteger("gSettings.ImGuiScale", 2);
     CVarRegisterInteger(CVAR_VSYNC_ENABLED, 1);
 
-    auto config = Ship::Context::GetInstance()->GetConfig();
+    auto config = Ship::Context::GetRawInstance()->GetConfig();
     if (!config->Contains("Window.Fullscreen.Enabled")) {
         config->SetBool("Window.Fullscreen.Enabled", true);
     }
