@@ -41,7 +41,7 @@ turns them off on the headset. In Steam, set it in the game's launch options as
 
 1. Download the `2ship-steam-frame-arm64` artifact from the `steam-frame` GitHub Actions workflow,
    or build it yourself (below).
-2. Make a folder for the game, e.g. `~/Games/2ship/`, copy `2ship-steam-frame.appimage` into it
+2. Make a folder for the game, e.g. `~/Games/2ship/`, copy `2ship-steam-frame-arm64.appimage` into it
    and make it executable (`chmod +x`).
 3. Copy your ROM (`.z64`, NTSC-U 1.0 or NTSC-U GameCube) into the same folder. 2Ship keeps its
    data, saves and `mm.o2r` in the folder it's started from (or in `$SHIP_HOME`, if that's set).

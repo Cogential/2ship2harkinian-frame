@@ -12,6 +12,8 @@ jobs:
   # cross-compiled; 2ship.o2r is architecture independent and is built in the same job.
   build-steam-frame:
     runs-on: ubuntu-22.04-arm
+    permissions:
+      contents: write
     steps:
     - name: Git Checkout
       uses: actions/checkout@v6
@@ -90,7 +92,7 @@ jobs:
 
         mv README.md readme.txt
         cp docs/STEAM_FRAME.md steam-frame.txt
-        mv build-cmake/*.appimage 2ship-steam-frame.appimage
+        mv build-cmake/*.appimage 2ship-steam-frame-arm64.appimage
       env:
         CC: gcc-12
         CXX: g++-12
@@ -99,8 +101,19 @@ jobs:
       with:
         name: 2ship-steam-frame-arm64
         path: |
-          2ship-steam-frame.appimage
+          2ship-steam-frame-arm64.appimage
           readme.txt
+          steam-frame.txt
+    # Pushing a frame-v* tag publishes the build as a GitHub release (marked as a pre-release).
+    - name: Publish release
+      if: startsWith(github.ref, 'refs/tags/frame-v')
+      uses: softprops/action-gh-release@v2
+      with:
+        name: Steam Frame ${{ github.ref_name }}
+        body_path: steamframe/RELEASE_NOTES.md
+        prerelease: true
+        files: |
+          2ship-steam-frame-arm64.appimage
           steam-frame.txt
     - name: Save Cache deps folder
       if: ${{ github.ref_name == github.event.repository.default_branch }}
