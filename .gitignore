@@ -74,3 +74,9 @@ _packages/
 
 build/
 .cache
+# Personal game files: never commit ROMs or bundles built from them
+*.z64
+*.n64
+*.v64
+2ship-frame-bundle*/
+2ship-frame-bundle*.tar.gz

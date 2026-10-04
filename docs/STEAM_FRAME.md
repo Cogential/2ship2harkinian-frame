@@ -54,6 +54,22 @@ turns them off on the headset. In Steam, set it in the game's launch options as
 On first launch 2Ship builds `mm.o2r` from the ROM. This takes a while on the headset and only
 happens once.
 
+### Personal bundle (skips the first-run ROM step)
+
+`steamframe/make-personal-bundle.sh` builds a ready-to-copy folder on your own PC from the release
+AppImage, your ROM and, optionally, an `mm.o2r` you've already made from it. It checks the ROM
+against the supported hashes and adds a `2ship.sh` launcher that keeps saves and settings in that
+folder. With an `mm.o2r` included, the game skips the first-run ROM step and starts straight away.
+
+```sh
+steamframe/make-personal-bundle.sh --rom "Majora's Mask (USA).z64" \
+    --appimage 2ship-steam-frame-arm64.appimage --o2r mm.o2r
+```
+
+Copy `2ship-frame-bundle/` to the Frame and add `2ship.sh` to Steam as a non-Steam game. The
+bundle is your personal copy of the game: keep it on your own devices and never upload it to
+GitHub, including as a release asset.
+
 Supported ROMs are listed in [`supportedHashes.json`](supportedHashes.json).
 
 ## Building
