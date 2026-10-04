@@ -3,8 +3,14 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Publish the build as a GitHub pre-release with this tag (e.g. frame-v0.1.0). Leave empty to only build.
+        required: false
+        default: ""
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # Keyed on the event too, so a branch push never cancels a manual release run.
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 jobs:
 
@@ -104,12 +110,15 @@ jobs:
           2ship-steam-frame-arm64.appimage
           readme.txt
           steam-frame.txt
-    # Pushing a frame-v* tag publishes the build as a GitHub release (marked as a pre-release).
+    # Pushing a frame-v* tag, or running the workflow manually with release_tag set, publishes the
+    # build as a GitHub pre-release. A manual run creates the tag on the commit it built.
     - name: Publish release
-      if: startsWith(github.ref, 'refs/tags/frame-v')
+      if: startsWith(github.ref, 'refs/tags/frame-v') || inputs.release_tag != ''
       uses: softprops/action-gh-release@v2
       with:
-        name: Steam Frame ${{ github.ref_name }}
+        tag_name: ${{ inputs.release_tag || github.ref_name }}
+        target_commitish: ${{ github.sha }}
+        name: Steam Frame ${{ inputs.release_tag || github.ref_name }}
         body_path: steamframe/RELEASE_NOTES.md
         prerelease: true
         files: |
