@@ -31,7 +31,14 @@ set(CPACK_SYSTEM_NAME ${LSB_RELEASE_CODENAME_SHORT})
 # if set, then instead of some-application-0.9.2-Linux.deb
 # you'll get some-application_0.9.2_amd64.deb (note the underscores too)
 #set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
-execute_process(COMMAND dpkg --print-architecture OUTPUT_VARIABLE ARCHITECTURE OUTPUT_STRIP_TRAILING_WHITESPACE)
+# Name packages after the target, not the build host, so cross-compiled builds are labelled correctly.
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
+  set(ARCHITECTURE arm64)
+  set(CPACK_LINUXDEPLOY_ARCH aarch64)
+else()
+  execute_process(COMMAND dpkg --print-architecture OUTPUT_VARIABLE ARCHITECTURE OUTPUT_STRIP_TRAILING_WHITESPACE)
+  set(CPACK_LINUXDEPLOY_ARCH x86_64)
+endif()
 set( CPACK_DEBIAN_FILE_NAME ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CPACK_SYSTEM_NAME}-${ARCHITECTURE}.deb )
 # if you want every group to have its own package,
 # although the same happens if this is not sent (so it defaults to ONE_PER_GROUP)
@@ -53,14 +60,14 @@ cmake_print_variables(CPACK_PACKAGE_DIRECTORY)
 cmake_print_variables(CPACK_PACKAGE_FILE_NAME)
 
 find_program(LINUXDEPLOY_EXECUTABLE
-  NAMES linuxdeploy linuxdeploy-x86_64.AppImage
+  NAMES linuxdeploy linuxdeploy-${CPACK_LINUXDEPLOY_ARCH}.AppImage
   PATHS ${CPACK_PACKAGE_DIRECTORY}/linuxdeploy)
 
 if (NOT LINUXDEPLOY_EXECUTABLE)
   message(STATUS "Downloading linuxdeploy")
   set(LINUXDEPLOY_EXECUTABLE ${CPACK_PACKAGE_DIRECTORY}/linuxdeploy/linuxdeploy)
   file(DOWNLOAD 
-      https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20240109-1/linuxdeploy-x86_64.AppImage
+      https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20240109-1/linuxdeploy-${CPACK_LINUXDEPLOY_ARCH}.AppImage
       ${LINUXDEPLOY_EXECUTABLE}
       INACTIVITY_TIMEOUT 10
       LOG ${CPACK_PACKAGE_DIRECTORY}/linuxdeploy/download.log

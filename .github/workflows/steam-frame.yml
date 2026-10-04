@@ -1,0 +1,110 @@
+name: steam-frame
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+
+  # Native aarch64 Linux build for the Steam Frame. Runs on GitHub's Arm runner so nothing is
+  # cross-compiled; 2ship.o2r is architecture independent and is built in the same job.
+  build-steam-frame:
+    runs-on: ubuntu-22.04-arm
+    steps:
+    - name: Git Checkout
+      uses: actions/checkout@v6
+      with:
+        submodules: true
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y $(cat .github/workflows/apt-deps.txt) libzip-dev zipcmp zipmerge ziptool gcc-12 g++-12 libfuse2
+    - name: Configure ccache
+      uses: hendrikmuhs/ccache-action@v1.2.22
+      with:
+        save: ${{ github.ref_name == github.event.repository.default_branch }}
+        key: ${{ runner.os }}-arm64-ccache-${{ github.ref }}-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-arm64-ccache-${{ github.ref }}
+          ${{ runner.os }}-arm64-ccache
+    - name: Restore Cached deps folder
+      id: restore-cache-deps
+      uses: actions/cache/restore@v5
+      with:
+        key: ${{ runner.os }}-arm64-deps-${{ github.ref }}-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-arm64-deps-${{ github.ref }}-
+          ${{ runner.os }}-arm64-deps-
+        path: deps
+    - name: Create deps folder
+      run: mkdir -p deps
+    - name: Install latest SDL
+      run: |
+        export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
+        if [ ! -d "deps/SDL2-2.30.3" ]; then
+          wget https://github.com/libsdl-org/SDL/releases/download/release-2.30.3/SDL2-2.30.3.tar.gz
+          tar -xzf SDL2-2.30.3.tar.gz -C deps
+        fi
+        cd deps/SDL2-2.30.3
+        ./configure --enable-hidapi-libusb
+        make -j 4
+        sudo make install
+        sudo cp -av /usr/local/lib/libSDL* /lib/aarch64-linux-gnu/
+    - name: Install latest tinyxml2
+      run: |
+        sudo apt-get remove libtinyxml2-dev
+        export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
+        if [ ! -d "deps/tinyxml2-10.0.0" ]; then
+          wget https://github.com/leethomason/tinyxml2/archive/refs/tags/10.0.0.tar.gz
+          tar -xzf 10.0.0.tar.gz -C deps
+        fi
+        cd deps/tinyxml2-10.0.0
+        mkdir -p build
+        cd build
+        cmake ..
+        make
+        sudo make install
+    - name: Install libzip without crypto
+      run: |
+        export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
+        if [ ! -d "deps/libzip-1.10.1" ]; then
+          wget https://github.com/nih-at/libzip/releases/download/v1.10.1/libzip-1.10.1.tar.gz
+          tar -xzf libzip-1.10.1.tar.gz -C deps
+        fi
+        cd deps/libzip-1.10.1
+        mkdir -p build
+        cd build
+        cmake .. -DENABLE_COMMONCRYPTO=OFF -DENABLE_GNUTLS=OFF -DENABLE_MBEDTLS=OFF -DENABLE_OPENSSL=OFF
+        make
+        sudo make install
+        sudo cp -av /usr/local/lib/libzip* /lib/aarch64-linux-gnu/
+    - name: Build 2Ship for Steam Frame
+      run: |
+        export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
+        cmake --no-warn-unused-cli -H. -Bbuild-cmake -GNinja -DCMAKE_BUILD_TYPE:STRING=Release -DSTEAM_FRAME=ON
+        cmake --build build-cmake --config Release --target Generate2ShipOtr -j4
+        cmake --build build-cmake --config Release -j4
+        (cd build-cmake && cpack -G External)
+
+        mv README.md readme.txt
+        cp docs/STEAM_FRAME.md steam-frame.txt
+        mv build-cmake/*.appimage 2ship-steam-frame.appimage
+      env:
+        CC: gcc-12
+        CXX: g++-12
+    - name: Upload build
+      uses: actions/upload-artifact@v7
+      with:
+        name: 2ship-steam-frame-arm64
+        path: |
+          2ship-steam-frame.appimage
+          readme.txt
+          steam-frame.txt
+    - name: Save Cache deps folder
+      if: ${{ github.ref_name == github.event.repository.default_branch }}
+      uses: actions/cache/save@v5
+      with:
+        key: ${{ steps.restore-cache-deps.outputs.cache-primary-key }}
+        path: deps

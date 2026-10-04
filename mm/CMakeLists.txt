@@ -427,6 +427,11 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
     else()
         if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
 		set(CPU_OPTION -msse2 -mfpmath=sse)
+        elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64" AND STEAM_FRAME)
+            # Steam Frame: Snapdragon 8 Gen 3 (Cortex-X4/A720/A520), all of which are ARMv9.2.
+            # Stay on the ARMv8.2 baseline GCC/Clang widely support, plus the CRC32 extension the
+            # extractor's CRC32C path uses.
+            set(CPU_OPTION -march=armv8.2-a+crc+crypto+dotprod -mtune=cortex-a76)
         endif()
 
         target_compile_options(${PROJECT_NAME} PRIVATE

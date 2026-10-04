@@ -79,6 +79,10 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     endif()
 endif()
 
+# Steam Frame (aarch64 SteamOS) build: tunes code generation for its Snapdragon 8 Gen 3. The
+# runtime Frame support in mm/2s2h/SteamFrame is detected at launch and does not depend on this.
+option(STEAM_FRAME "Tune the build for the Steam Frame (aarch64 Linux)" OFF)
+
 if (CMAKE_SYSTEM_NAME MATCHES "Windows|Linux")
     if(NOT DEFINED BUILD_CROWD_CONTROL)
         set(BUILD_CROWD_CONTROL OFF)
