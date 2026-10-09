@@ -1,5 +1,11 @@
 **Test build: native ARM64 Linux build of 2 Ship 2 Harkinian for the Steam Frame.**
 
+### Fixes in frame-v0.1.2
+- **D-pad and controller mapping on the Frame.** Steam describes its virtual controller in a way SDL
+  can't map, so only some buttons arrived (D-pad up worked, but down, left and right didn't, even
+  when remapping). The game now hides that description at startup and the controller works as an
+  Xbox pad. Nothing else changed from frame-v0.1.1.
+
 ### Fixes in frame-v0.1.1
 - **Frame detection inside Steam Linux Runtime.** The game read the runtime's `/etc/os-release`
   instead of SteamOS's, so the Frame defaults could silently not apply. It now reads the host's

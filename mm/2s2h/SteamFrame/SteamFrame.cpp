@@ -56,6 +56,13 @@ bool IsSteamFrame() {
 }
 
 void ApplyDefaults() {
+#if defined(__linux__) && defined(__aarch64__)
+    // Steam describes its virtual Xbox pad to SDL as "Steam Frame Controllers" (28de:11e0), which SDL
+    // has no mapping for, so only some buttons arrive (the D-pad's up but not down, left or right).
+    // Without the description SDL maps the pad as the Xbox pad it is. SDL reads it when its joystick
+    // subsystem starts, which is after this. Done before detection so a missed detection can't undo it.
+    unsetenv("SteamVirtualGamepadInfo");
+#endif
     if (!IsSteamFrame()) {
         return;
     }
